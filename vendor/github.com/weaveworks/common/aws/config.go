@@ -7,6 +7,7 @@ import (
 	"net/url"
 	"strings"
 	"time"
+	"os"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
@@ -45,7 +46,14 @@ func ConfigFromURL(awsURL *url.URL) (*aws.Config, error) {
 	}
 
 	if strings.Contains(awsURL.Host, ".") {
-		return config.WithEndpoint(fmt.Sprintf("http://%s", awsURL.Host)).WithRegion("dummy"), nil
+		region := os.Getenv("AWS_REGION")
+		if region == "" {
+			region = "dummy"
+		}
+		if awsURL.Scheme == "https" {
+			return config.WithEndpoint(fmt.Sprintf("https://%s", awsURL.Host)).WithRegion(region), nil
+		}
+		return config.WithEndpoint(fmt.Sprintf("http://%s", awsURL.Host)).WithRegion(region), nil
 	}
 
 	// Let AWS generate default endpoint based on region passed as a host in URL.
