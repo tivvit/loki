@@ -319,3 +319,7 @@ func (c *client) Handle(ls model.LabelSet, t time.Time, s string) error {
 	}}
 	return nil
 }
+
+func (c *client) GetOutChanLen() int {
+	return len(c.out)
+}
