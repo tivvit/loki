@@ -82,6 +82,7 @@ type Client interface {
 	api.EntryHandler
 	// Stop goroutine sending batch of entries.
 	Stop()
+	GetOutChanLen() int
 }
 
 // Client for pushing logs in snappy-compressed protos over HTTP.

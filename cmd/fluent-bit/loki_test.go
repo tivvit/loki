@@ -31,6 +31,7 @@ func (r *recorder) Handle(labels model.LabelSet, time time.Time, e string) error
 func (r *recorder) toEntry() *entry { return r.entry }
 
 func (r *recorder) Stop() {}
+func (r *recorder) GetOutChanLen() int {return 0}
 
 var now = time.Now()
 

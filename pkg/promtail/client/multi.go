@@ -46,3 +46,7 @@ func (m MultiClient) Stop() {
 		c.Stop()
 	}
 }
+
+func (m MultiClient) GetOutChanLen() int {
+	return 0
+}
