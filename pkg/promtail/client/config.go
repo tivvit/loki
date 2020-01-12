@@ -23,6 +23,7 @@ type Config struct {
 	ExternalLabels lokiflag.LabelSet `yaml:"external_labels,omitempty"`
 	Timeout        time.Duration     `yaml:"timeout"`
 	OutBufferCap int `yaml:"out_buffer_cap,omitempty"`
+	Id string `yaml:"id,omitempty"`
 }
 
 // RegisterFlags registers flags.
@@ -36,6 +37,7 @@ func (c *Config) RegisterFlags(flags *flag.FlagSet) {
 	flag.DurationVar(&c.BackoffConfig.MaxBackoff, "client.max-backoff", 5*time.Second, "Maximum backoff time between retries.")
 	flag.DurationVar(&c.Timeout, "client.timeout", 10*time.Second, "Maximum time to wait for server to respond to a request")
 	flag.IntVar(&c.OutBufferCap, "client.out-buffer-cap", 10, "Client sender buffer capacity.")
+	flag.StringVar(&c.Id, "client.id", "0", "Client id.")
 	flags.Var(&c.ExternalLabels, "client.external-labels", "list of external labels to add to each log (e.g: --client.external-labels=lb1=v1,lb2=v2)")
 }
 
@@ -58,6 +60,7 @@ func (c *Config) UnmarshalYAML(unmarshal func(interface{}) error) error {
 			BatchWait: 1 * time.Second,
 			Timeout:   10 * time.Second,
 			OutBufferCap: 10,
+			Id: "0",
 		}
 	}
 

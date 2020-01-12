@@ -34,37 +34,37 @@ var (
 		Namespace: "promtail",
 		Name:      "encoded_bytes_total",
 		Help:      "Number of bytes encoded and ready to send.",
-	}, []string{"host"})
+	}, []string{"id", "host"})
 	sentBytes = prometheus.NewCounterVec(prometheus.CounterOpts{
 		Namespace: "promtail",
 		Name:      "sent_bytes_total",
 		Help:      "Number of bytes sent.",
-	}, []string{"host"})
+	}, []string{"id", "host"})
 	droppedBytes = prometheus.NewCounterVec(prometheus.CounterOpts{
 		Namespace: "promtail",
 		Name:      "dropped_bytes_total",
 		Help:      "Number of bytes dropped because failed to be sent to the ingester after all retries.",
-	}, []string{"host"})
+	}, []string{"id", "host"})
 	sentEntries = prometheus.NewCounterVec(prometheus.CounterOpts{
 		Namespace: "promtail",
 		Name:      "sent_entries_total",
 		Help:      "Number of log entries sent to the ingester.",
-	}, []string{"host"})
+	}, []string{"id", "host"})
 	droppedEntries = prometheus.NewCounterVec(prometheus.CounterOpts{
 		Namespace: "promtail",
 		Name:      "dropped_entries_total",
 		Help:      "Number of log entries dropped because failed to be sent to the ingester after all retries.",
-	}, []string{"host"})
-	queueLen = prometheus.NewGauge(prometheus.GaugeOpts{
+	}, []string{"id", "host"})
+	queueLen = prometheus.NewGaugeVec(prometheus.GaugeOpts{
 		Namespace: "promtail",
 		Name:      "output_queue_len",
 		Help:      "Number of entries waiting to be sent.",
-	})
+	}, []string{"id", "host"})
 	requestDuration = prometheus.NewHistogramVec(prometheus.HistogramOpts{
 		Namespace: "promtail",
 		Name:      "request_duration_seconds",
 		Help:      "Duration of send requests.",
-	}, []string{"status_code", "host"})
+	}, []string{"id", "status_code", "host"})
 )
 
 func init() {
@@ -193,7 +193,7 @@ func (c *client) sendBatch(batch map[model.Fingerprint]*logproto.Stream) {
 		return
 	}
 	bufBytes := float64(len(buf))
-	encodedBytes.WithLabelValues(c.cfg.URL.Host).Add(bufBytes)
+	encodedBytes.WithLabelValues(c.cfg.Id, c.cfg.URL.Host).Add(bufBytes)
 	c.out <- outBatch{
 		data:  buf,
 		count: entriesCount,
@@ -222,11 +222,11 @@ func (c *client) sender() {
 			for backOff.Ongoing() {
 				start := time.Now()
 				status, err = c.send(ctx, buf)
-				requestDuration.WithLabelValues(strconv.Itoa(status), c.cfg.URL.Host).Observe(time.Since(start).Seconds())
+				requestDuration.WithLabelValues(c.cfg.Id, strconv.Itoa(status), c.cfg.URL.Host).Observe(time.Since(start).Seconds())
 
 				if err == nil {
-					sentBytes.WithLabelValues(c.cfg.URL.Host).Add(bufBytes)
-					sentEntries.WithLabelValues(c.cfg.URL.Host).Add(float64(entriesCount))
+					sentBytes.WithLabelValues(c.cfg.Id, c.cfg.URL.Host).Add(bufBytes)
+					sentEntries.WithLabelValues(c.cfg.Id, c.cfg.URL.Host).Add(float64(entriesCount))
 					break
 				}
 
@@ -241,12 +241,12 @@ func (c *client) sender() {
 
 			if err != nil {
 				level.Error(c.logger).Log("msg", "final error sending batch", "status", status, "error", err)
-				droppedBytes.WithLabelValues(c.cfg.URL.Host).Add(bufBytes)
-				droppedEntries.WithLabelValues(c.cfg.URL.Host).Add(float64(entriesCount))
+				droppedBytes.WithLabelValues(c.cfg.Id, c.cfg.URL.Host).Add(bufBytes)
+				droppedEntries.WithLabelValues(c.cfg.Id, c.cfg.URL.Host).Add(float64(entriesCount))
 			}
 		}
 		ql = len(c.out)
-		queueLen.Set(float64(ql))
+		queueLen.WithLabelValues(c.cfg.Id, c.cfg.URL.Host).Set(float64(ql))
 
 		// send all messages and then quit (when exiting)
 		if quit && ql == 0 {
